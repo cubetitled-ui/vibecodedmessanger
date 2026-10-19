@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserNode(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.handle is string && data.handle.size() >= 2 && data.handle.size() <= 60 &&
+             data.phoneHash is string && data.phoneHash.size() >= 8 && data.phoneHash.size() <= 128 &&
+             data.publicKeyHex is string && data.publicKeyHex.size() >= 16 && data.publicKeyHex.size() <= 512 &&
+             data.activeCipherId is string && data.activeCipherId.size() >= 3 && data.activeCipherId.size() <= 64 &&
+             (!('customServerUrl' in data) || data.customServerUrl == null || (data.customServerUrl is string && data.customServerUrl.size() <= 256)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidEncryptedEnvelope(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.conversationId is string && data.conversationId.size() >= 1 && data.conversationId.size() <= 128 &&
+             data.senderHandle is string && data.senderHandle.size() >= 1 && data.senderHandle.size() <= 60 &&
+             data.cipherSuite is string && data.cipherSuite.size() >= 3 && data.cipherSuite.size() <= 64 &&
+             data.ephemeralPubKey is string && data.ephemeralPubKey.size() >= 8 && data.ephemeralPubKey.size() <= 256 &&
+             data.nonceHex is string && data.nonceHex.size() >= 8 && data.nonceHex.size() <= 128 &&
+             data.ciphertextHex is string && data.ciphertextHex.size() >= 2 && data.ciphertextHex.size() <= 16384 &&
+             data.macTagHex is string && data.macTagHex.size() >= 8 && data.macTagHex.size() <= 256 &&
+             data.transportRoute is string && data.transportRoute in ['LAN_P2P', 'CUSTOM_SERVER', 'CLOUD_RELAY'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'handle', 'phoneHash', 'publicKeyHex', 'activeCipherId', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'handle', 'phoneHash', 'publicKeyHex', 'activeCipherId', 'customServerUrl', 'createdAt', 'updatedAt']) &&
+                       isValidUserNode(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserNode(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['handle', 'phoneHash', 'publicKeyHex', 'activeCipherId', 'customServerUrl', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /envelopes/{envelopeId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(envelopeId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId && existing().userId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(envelopeId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll(['userId', 'conversationId', 'senderHandle', 'cipherSuite', 'ephemeralPubKey', 'nonceHex', 'ciphertextHex', 'macTagHex', 'transportRoute', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'conversationId', 'senderHandle', 'cipherSuite', 'ephemeralPubKey', 'nonceHex', 'ciphertextHex', 'macTagHex', 'transportRoute', 'createdAt', 'updatedAt']) &&
+                         isValidEncryptedEnvelope(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(envelopeId) &&
+                         request.auth.uid == userId &&
+                         isValidEncryptedEnvelope(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().conversationId == existing().conversationId &&
+                         incoming().ciphertextHex == existing().ciphertextHex &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['transportRoute', 'updatedAt']);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(envelopeId) && request.auth.uid == userId;
+      }
+    }
+  }
+}

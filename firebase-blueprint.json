@@ -1,0 +1,139 @@
+{
+  "entities": {
+    "UserNode": {
+      "title": "UserNode",
+      "description": "Zero-knowledge user identity node storing public cryptographic key fingerprint and blind routing metadata.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated user UID owning this node."
+        },
+        "handle": {
+          "type": "string",
+          "description": "Monochrome public handle or alias."
+        },
+        "phoneHash": {
+          "type": "string",
+          "description": "SHA-256 blinded hash of verified phone number for zero-knowledge contact discovery."
+        },
+        "publicKeyHex": {
+          "type": "string",
+          "description": "Public X25519 + Ed25519 identity key encoded in hex."
+        },
+        "activeCipherId": {
+          "type": "string",
+          "description": "Selected encryption protocol identifier (e.g. AEGIS-52-CASCADE)."
+        },
+        "customServerUrl": {
+          "type": "string",
+          "description": "User-configured blind relay server endpoint."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of node registration via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "handle",
+        "phoneHash",
+        "publicKeyHex",
+        "activeCipherId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EncryptedEnvelope": {
+      "title": "EncryptedEnvelope",
+      "description": "Zero-knowledge E2EE message envelope stored in user's cloud relay vault. Server and database see only opaque ciphertext.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID of the vault storing this envelope."
+        },
+        "conversationId": {
+          "type": "string",
+          "description": "Target conversation, group, or channel identifier."
+        },
+        "senderHandle": {
+          "type": "string",
+          "description": "Blinded or public handle of sender."
+        },
+        "cipherSuite": {
+          "type": "string",
+          "description": "Cipher suite identifier used to seal the payload (e.g. AEGIS-52)."
+        },
+        "ephemeralPubKey": {
+          "type": "string",
+          "description": "Per-message ephemeral public ratchet key."
+        },
+        "nonceHex": {
+          "type": "string",
+          "description": "96-bit / 192-bit cascade AEAD initialization vector in hex."
+        },
+        "ciphertextHex": {
+          "type": "string",
+          "description": "Dual-layer encrypted and padded payload in hex."
+        },
+        "macTagHex": {
+          "type": "string",
+          "description": "Poly1305 + GCM + SHA3-512 integrity authentication tag."
+        },
+        "transportRoute": {
+          "type": "string",
+          "enum": [
+            "LAN_P2P",
+            "CUSTOM_SERVER",
+            "CLOUD_RELAY"
+          ],
+          "description": "Transport route over which the envelope was dispatched."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "conversationId",
+        "senderHandle",
+        "cipherSuite",
+        "ephemeralPubKey",
+        "nonceHex",
+        "ciphertextHex",
+        "macTagHex",
+        "transportRoute",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserNode"
+      },
+      "description": "Per-user zero-knowledge identity node and blind relay configuration."
+    },
+    "/users/{userId}/envelopes/{envelopeId}": {
+      "schema": {
+        "$ref": "#/entities/EncryptedEnvelope"
+      },
+      "description": "Per-user zero-knowledge encrypted message envelopes."
+    }
+  }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Hexagonal Shield -->
+    <path
+        android:fillColor="#F4F4F6"
+        android:pathData="M54,24 L78,36 L78,56 C78,71 67.5,81.5 54,86 C40.5,81.5 30,71 30,56 L30,36 Z" />
+    <!-- Inner Obsidian Core -->
+    <path
+        android:fillColor="#121215"
+        android:pathData="M54,30 L72,39.5 L72,55.5 C72,67.2 63.8,75.8 54,79.6 C44.2,75.8 36,67.2 36,55.5 L36,39.5 Z" />
+    <!-- Cryptographic Keyhole / Node Glyph -->
+    <path
+        android:fillColor="#F4F4F6"
+        android:pathData="M54,42 C58.4,42 62,45.6 62,50 C62,53.1 60.2,55.8 57.5,57.1 L59,68 L49,68 L50.5,57.1 C47.8,55.8 46,53.1 46,50 C46,45.6 49.6,42 54,42 Z" />
+</vector>
